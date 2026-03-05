@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shift Report Entry</title>
+
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:rgba(255,255,255,.06);
+      --panel2:rgba(255,255,255,.09);
+      --stroke:rgba(255,255,255,.12);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.65);
+      --good:#22c55e;
+      --warn:#fbbf24;
+      --bad:#ef4444;
+      --blue:#3b82f6;
+      --radius:16px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:
+        radial-gradient(900px 500px at 10% 0%, rgba(34,197,94,.14), transparent 55%),
+        radial-gradient(900px 500px at 90% 10%, rgba(59,130,246,.12), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:24px;}
+    .topbar{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+      margin-bottom:18px;
+    }
+    h1{font-size:22px;margin:0 0 6px 0;letter-spacing:.2px;}
+    .sub{color:var(--muted);font-size:13px;line-height:1.35;}
+    .card{
+      background:linear-gradient(180deg, var(--panel), rgba(255,255,255,.03));
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:12px;
+    }
+    .field{display:flex;flex-direction:column;gap:6px;}
+    label{font-size:12px;color:var(--muted);}
+    input, select, textarea, button{
+      font-family:inherit;
+      border-radius:12px;
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,.25);
+      color:var(--text);
+      padding:10px 10px;
+      outline:none;
+    }
+    textarea{min-height:38px;resize:vertical;}
+    input[type="date"]{padding:9px 10px;}
+    input:focus, select:focus, textarea:focus{border-color:rgba(255,255,255,.22);}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+    .btn{
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.08);
+      transition:.15s ease;
+      font-weight:600;
+    }
+    .btn:hover{background:rgba(255,255,255,.12);}
+    .btn.primary{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.35);}
+    .btn.primary:hover{background:rgba(34,197,94,.24);}
+    .btn.danger{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.35);}
+    .btn.danger:hover{background:rgba(239,68,68,.22);}
+    .pill{
+      font-family:var(--mono);
+      font-size:12px;
+      color:rgba(255,255,255,.8);
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      background:rgba(0,0,0,.18);
+    }
+    .sections{margin-top:14px;display:flex;flex-direction:column;gap:14px;}
+    .sectionHead{
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+      margin-bottom:10px;
+    }
+    .sectionTitle{display:flex;gap:10px;align-items:center;}
+    .sectionTitle h2{font-size:16px;margin:0;}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px;}
+    th{
+      font-size:11px;color:var(--muted);font-weight:600;text-align:left;
+      padding:0 10px;
+    }
+    td{padding:0 10px;}
+    .tr{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+    }
+    .tr td{padding:10px;}
+    .labelCell{
+      width:44%;
+      font-size:13px;
+      line-height:1.25;
+    }
+    .small{font-size:12px;color:var(--muted);}
+    .status{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,.22);
+      font-size:13px;
+      white-space:pre-wrap;
+    }
+    .twoCol{
+      display:grid;
+      grid-template-columns: 1.3fr .7fr;
+      gap:12px;
+      margin-top:12px;
+    }
+    @media (max-width: 980px){
+      .twoCol{grid-template-columns:1fr;}
+      .labelCell{width:auto;}
+    }
+.areaChecklist{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  padding:10px;
+  border:1px solid var(--stroke);
+  border-radius:14px;
+  background:rgba(0,0,0,.18);
+}
+.areaItem{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.06);
+  cursor:pointer;
+  user-select:none;
+}
+.areaItem input{
+  margin:0;
+  width:16px;
+  height:16px;
+}
+.areaItem span{
+  font-family:var(--mono);
+  font-size:12px;
+}
+  </style>
+
+  <!-- Supabase JS (UMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Shift Report Entry</h1>
+        <div class="sub">
+      
+        </div>
+      </div>
+      <div class="pill" id="nowPill"></div>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div class="field" style="grid-column: span 3;">
+          <label for="supervisor">Supervisor</label>
+          <select id="supervisor">
+            <option value="">Select…</option>
+            <option>Jeff</option>
+            <option>Jamie</option>
+            <option>Derek</option>
+            <option>Scott</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div class="field" style="grid-column: span 3;">
+          <label for="supervisorOther">If Other, type name</label>
+          <input id="supervisorOther" type="text" placeholder="Name…" disabled />
+        </div>
+
+        <div class="field" style="grid-column: span 2;">
+          <label for="shift">Shift</label>
+          <select id="shift">
+            <option value="">Select…</option>
+            <option>First</option>
+            <option>Second</option>
+            <option>Third</option>
+          </select>
+        </div>
+
+        <div class="field" style="grid-column: span 2;">
+          <label for="reportDate">Date</label>
+          <input id="reportDate" type="date" />
+        </div>
+
+<div class="field" style="grid-column: span 12;">
+  <label>Work Areas (check to add)</label>
+  <div id="areaChecklist" class="areaChecklist"></div>
+</div>
+
+        <div class="field" style="grid-column: span 12;">
+          <div class="row">
+            
+            <button class="btn primary" id="saveBtn" type="button">Save to Supabase</button>
+            <button class="btn" id="viewReportsBtn" type="button">View previous reports</button>
+            <button class="btn danger" id="clearBtn" type="button">Clear Form</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sections" id="sections"></div>
+
+      <div class="twoCol">
+        <div class="status" id="statusBox">Ready.</div>
+        <div class="status">
+          <div style="font-weight:700;margin-bottom:6px;">Problems?</div>
+          <div class="small">
+            If you are having problems with this page or reports not populating correctly, please contact Ethan M via email: ethan.miller@zf.com
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/** ===============================
+ *  CONFIG: Supabase
+ *  =============================== */
+const SUPABASE_URL = "https://vycwkgpdivxazjgsrgiq.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_aAjs8tF_8c8sB30ekxSXZQ_KxaBMBTE";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/** ===============================
+ *  Labels (from your Excel "Label" column)
+ *  Groups: 5100, 5400-family, 6400, 6700, 6800, 8000-8200
+ *  =============================== */
+const LABEL_GROUPS = {
+  "5100": [
+    "5100 - Core wash/check-in",
+    "5100 - Component Wash/inspect",
+    "5100 - Reman Sector/Sidecover Assy",
+    "5100 - Reman Housing Press",
+    "5100 - Reman Sub-Assembly Ball up",
+    "5100 - Reman Assembly Line",
+    "5100 - Reman Manual Testers",
+    "5100 - Reman Packout",
+    "5100 - Misc",
+    "5100 - Reman Total"
+  ],
+
+  // Your sheet has 5400 plus related codes (5410/5420/5430/1900) — grouped here under "5400"
+  "5400": [
+    "5400 - Gen 2.0+ ReAX",
+    "5400 - Gen 2.5",
+    "5400 - 54FC",
+    "5400 - 54MT",
+    "5400 - 54PB",
+    "5400 - 54RG/Utility",
+    "5400 - 54W1",
+    "5400 - 54W5",
+    "5400 - 5450",
+    "5410 - Global (KW/Raptor)",
+    "1900 - Global Safelaunch",
+    "5420 - Shroud",
+    "5430 - New Global (RHS)",
+    "5400 - Misc",
+    "5400 total"
+  ],
+
+  "6400": [
+    "6400 - 64W1",
+    "6400 - 64W3-Cam",
+    "6400 - 64W3-Rotor Weldon",
+    "6400 - 64W3-Rotor Blohm 1",
+    "6400 - 64W3-Rotor Blohm 2",
+    "6400 - 64W4 Old line",
+    "6400 - 64W4 New line",
+    "6400 - 64W8 Mapro line",
+    "6400 Testers/Repair/Packout",
+    "6400 - Spools",
+    "6400 - Misc",
+    "6400 - Pump room"
+  ],
+
+  "6700": [
+    "6700 - Line-1",
+    "6700 - Line-2",
+    "6700 - Line-3",
+    "6700 - New Arms"
+  ],
+
+  "6800": [
+    "6800 - Back Of Line",
+    "6800 - Mazak-Dura",
+    "6800 - Bender",
+    "6800 - Old Arms"
+  ],
+
+  "ARMS_EXTRA": [
+    "Arms Firewall",
+    "Arms - Misc"
+    // "Total Arms" is added conditionally when BOTH 6700 and 6800 are present
+  ],
+
+  "8000_8200": [
+    "8000 - Cylinders",
+    "8100 - Paint Booth",
+    "8100 - KITS",
+    "1200 - Labor Pool",
+    "8200 - Line 1",
+    "8200 - Line 2",
+    "8200 - Line 3",
+    "8200 - Line 4",
+    "8200 - Line 5",
+    "8200 - Wash/Pack/Utility",
+    "8200 - Total Housings",
+  ]
+};
+
+/** ===============================
+ *  State
+ *  =============================== */
+const state = {
+  addedAreas: new Set(),      // holds "5100", "5400", ...
+  rowsByArea: new Map()       // area -> array of row objects {label, ops, hours, actual, notes}
+};
+
+const $ = (id) => document.getElementById(id);
+const statusBox = $("statusBox");
+const sectionsEl = $("sections");
+
+function setStatus(msg){
+  statusBox.textContent = msg;
+}
+
+function todayISO(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function prettyNow(){
+  const d = new Date();
+  return d.toLocaleString();
+}
+
+/** Supervisor Other logic */
+$("supervisor").addEventListener("change", () => {
+  const isOther = $("supervisor").value === "Other";
+  $("supervisorOther").disabled = !isOther;
+  if(!isOther) $("supervisorOther").value = "";
+});
+
+/** Init date + pill */
+$("reportDate").value = todayISO();
+$("nowPill").textContent = `Now: ${prettyNow()}`;
+
+/** ===============================
+ *  Rendering
+ *  =============================== */
+function makeRow(areaKey, label){
+  return { areaKey, label, ops: "", hours_worked: "", actual_ran: "", notes: "" };
+}
+
+function ensureArea(areaKey){
+  if(state.addedAreas.has(areaKey)) return;
+
+  // Build base rows
+  let labels = LABEL_GROUPS[areaKey] || [];
+  const rows = labels.map(l => makeRow(areaKey, l));
+
+  // Arms extras
+  if(areaKey === "6700" || areaKey === "6800"){
+    // Add extras (firewall/misc) once per arms section (we'll attach to whichever was added first)
+    // To avoid duplicates, only add extras if they are not already present in other arms section.
+    const otherArmsKey = areaKey === "6700" ? "6800" : "6700";
+    const otherHasArms = state.addedAreas.has(otherArmsKey);
+
+    // If the other arms section already exists, do nothing here
+    // If not, add ARMS_EXTRA to this section
+    if(!otherHasArms){
+      for(const extra of LABEL_GROUPS["ARMS_EXTRA"]){
+        rows.push(makeRow(areaKey, extra));
+      }
+    }
+  }
+
+  state.addedAreas.add(areaKey);
+  state.rowsByArea.set(areaKey, rows);
+
+  // If BOTH 6700 and 6800 are now present, ensure "Total Arms" exists exactly once
+  maybeAddTotalArms();
+
+  render();
+}
+
+function maybeAddTotalArms(){
+  const has6700 = state.addedAreas.has("6700");
+  const has6800 = state.addedAreas.has("6800");
+  if(!(has6700 && has6800)) return;
+
+  // Attach Total Arms to the 6800 section by default (or 6700 if 6800 missing)
+  const targetKey = state.rowsByArea.has("6800") ? "6800" : "6700";
+  const rows = state.rowsByArea.get(targetKey) || [];
+
+  const existsSomewhere = Array.from(state.rowsByArea.values())
+    .flat()
+    .some(r => r.label === "Total Arms");
+
+  if(!existsSomewhere){
+    rows.push(makeRow(targetKey, "Total Arms"));
+    state.rowsByArea.set(targetKey, rows);
+  }
+}
+
+function removeArea(areaKey){
+  state.addedAreas.delete(areaKey);
+  state.rowsByArea.delete(areaKey);
+
+  // If we removed one of arms, also remove Total Arms and extras if needed
+  const has6700 = state.addedAreas.has("6700");
+  const has6800 = state.addedAreas.has("6800");
+  if(!(has6700 && has6800)){
+    // remove any "Total Arms" rows
+    for(const [k, rows] of state.rowsByArea.entries()){
+      const filtered = rows.filter(r => r.label !== "Total Arms");
+      state.rowsByArea.set(k, filtered);
+    }
+  }
+
+  render();
+}
+
+function render(){
+  sectionsEl.innerHTML = "";
+
+  if(state.addedAreas.size === 0){
+    const empty = document.createElement("div");
+    empty.className = "status";
+    empty.textContent = "No work areas added yet. Check one or more Work Areas above to populate sections automatically.";
+    sectionsEl.appendChild(empty);
+    buildAreaChecklist();
+    return;
+  }
+
+  // Keep a consistent order
+  const order = ["5100","5400","6400","6700","6800","8000_8200"];
+  const added = order.filter(k => state.addedAreas.has(k));
+
+  for(const areaKey of added){
+    const rows = state.rowsByArea.get(areaKey) || [];
+
+    const sec = document.createElement("div");
+    sec.className = "card";
+
+    const head = document.createElement("div");
+    head.className = "sectionHead";
+
+    const titleWrap = document.createElement("div");
+    titleWrap.className = "sectionTitle";
+    const h2 = document.createElement("h2");
+    h2.textContent = `Area: ${areaKey === "8000_8200" ? "8000 - 8200" : areaKey}`;
+    titleWrap.appendChild(h2);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn danger";
+    removeBtn.type = "button";
+    removeBtn.textContent = "Remove Area";
+    removeBtn.addEventListener("click", () => removeArea(areaKey));
+
+    head.appendChild(titleWrap);
+    head.appendChild(removeBtn);
+
+    const tbl = document.createElement("table");
+    const thead = document.createElement("thead");
+    thead.innerHTML = `
+      <tr>
+        <th style="padding-left:10px;">Label</th>
+        <th># Ops</th>
+        <th>Hours worked</th>
+        <th>Actual ran</th>
+        <th>Notes</th>
+      </tr>
+    `;
+    tbl.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    rows.forEach((row, idx) => {
+      const tr = document.createElement("tr");
+      tr.className = "tr";
+
+      const tdLabel = document.createElement("td");
+      tdLabel.className = "labelCell";
+      tdLabel.textContent = row.label;
+
+      const tdOps = document.createElement("td");
+      const ops = document.createElement("input");
+      ops.type = "number";
+      ops.step = "0.1";
+      ops.placeholder = "e.g. 4";
+      ops.value = row.ops;
+      ops.addEventListener("input", () => row.ops = ops.value);
+      tdOps.appendChild(ops);
+
+      const tdHours = document.createElement("td");
+      const hours = document.createElement("input");
+      hours.type = "number";
+      hours.step = "0.1";
+      hours.placeholder = "e.g. 32";
+      hours.value = row.hours_worked;
+      hours.addEventListener("input", () => row.hours_worked = hours.value);
+      tdHours.appendChild(hours);
+
+      const tdActual = document.createElement("td");
+      const actual = document.createElement("input");
+      actual.type = "number";
+      actual.step = "1";
+      actual.placeholder = "e.g. 800";
+      actual.value = row.actual_ran;
+      actual.addEventListener("input", () => row.actual_ran = actual.value);
+      tdActual.appendChild(actual);
+
+      const tdNotes = document.createElement("td");
+      const notes = document.createElement("textarea");
+      notes.placeholder = "Notes…";
+      notes.value = row.notes;
+      notes.addEventListener("input", () => row.notes = notes.value);
+      tdNotes.appendChild(notes);
+
+      tr.appendChild(tdLabel);
+      tr.appendChild(tdOps);
+      tr.appendChild(tdHours);
+      tr.appendChild(tdActual);
+      tr.appendChild(tdNotes);
+
+      tbody.appendChild(tr);
+    });
+
+    tbl.appendChild(tbody);
+
+    sec.appendChild(head);
+    sec.appendChild(tbl);
+    sectionsEl.appendChild(sec);
+  }
+}
+
+
+function buildAreaChecklist(){
+  const list = $("areaChecklist");
+  if(!list) return;
+  list.innerHTML = "";
+
+  const areas = [
+    { key:"5100", label:"5100" },
+    { key:"5400", label:"5400" },
+    { key:"6400", label:"6400" },
+    { key:"6700", label:"6700" },
+    { key:"6800", label:"6800" },
+    { key:"8000_8200", label:"8000 - 8200" }
+  ];
+
+  for(const a of areas){
+    const wrap = document.createElement("label");
+    wrap.className = "areaItem";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = a.key;
+    cb.checked = state.addedAreas.has(a.key);
+
+    cb.addEventListener("change", () => {
+      if(cb.checked){
+        ensureArea(a.key);
+        setStatus(`Added work area: ${a.label}`);
+      }else{
+        removeArea(a.key);
+        setStatus(`Removed work area: ${a.label}`);
+      }
+    });
+
+    const txt = document.createElement("span");
+    txt.textContent = a.label;
+
+    wrap.appendChild(cb);
+    wrap.appendChild(txt);
+    list.appendChild(wrap);
+  }
+}
+
+function resetFormToBlank(){
+  $("supervisor").value = "";
+  $("supervisorOther").value = "";
+  $("supervisorOther").disabled = true;
+  $("shift").value = "";
+  $("reportDate").value = todayISO();
+
+  state.addedAreas.clear();
+  state.rowsByArea.clear();
+
+  render(); // also rebuilds checklist unchecked
+}
+
+/** ===============================
+ *  Add Area button
+ *  =============================== */
+
+/** ===============================
+ *  Save to Supabase
+ *  =============================== */
+function parseNum(v){
+  if(v === "" || v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getSupervisorFinal(){
+  const sup = $("supervisor").value;
+  if(!sup) return "";
+  if(sup !== "Other") return sup;
+  return ($("supervisorOther").value || "").trim();
+}
+
+function getAreaList(){
+  return Array.from(state.addedAreas).map(k => (k === "8000_8200" ? "8000 - 8200" : k));
+}
+
+$("saveBtn").addEventListener("click", async () => {
+  try{
+    const supervisor = getSupervisorFinal();
+    const shift = $("shift").value;
+    const reportDate = $("reportDate").value;
+
+    if(!supervisor){
+      setStatus("Supervisor is required (if Other, type the name).");
+      return;
+    }
+    if(!shift){
+      setStatus("Shift is required.");
+      return;
+    }
+    if(!reportDate){
+      setStatus("Date is required.");
+      return;
+    }
+    if(state.addedAreas.size === 0){
+      setStatus("Add at least one work area before saving.");
+      return;
+    }
+
+    setStatus("Saving header…");
+
+    const headerPayload = {
+      report_date: reportDate,
+      supervisor,
+      shift,
+      work_areas: getAreaList()
+    };
+
+    const { data: header, error: headerErr } = await sb
+      .from("shift_reports")
+      .insert(headerPayload)
+      .select("id")
+      .single();
+
+    if(headerErr) throw headerErr;
+
+    const reportId = header.id;
+
+    setStatus("Saving line items…");
+
+    const lines = [];
+    for(const [areaKey, rows] of state.rowsByArea.entries()){
+      const groupName = (areaKey === "8000_8200") ? "8000 - 8200" : areaKey;
+
+      for(const r of rows){
+        lines.push({
+          report_id: reportId,
+          area_group: groupName,
+          label: r.label,
+          ops: parseNum(r.ops),
+          hours_worked: parseNum(r.hours_worked),
+          actual_ran: parseNum(r.actual_ran),
+          notes: (r.notes || "").trim() || null
+        });
+      }
+    }
+
+    const { error: lineErr } = await sb
+      .from("shift_report_lines")
+      .insert(lines);
+
+    if(lineErr) throw lineErr;
+
+    setStatus(`✅ Saved! Report ID: ${reportId}`);
+
+    // Reset the entire form so it is obvious the save completed
+    resetFormToBlank();
+    setStatus(`✅ Saved! Report ID: ${reportId}\n(Form reset)`);
+  }catch(err){
+    console.error(err);
+    setStatus(`❌ Save failed:\n${err?.message || JSON.stringify(err)}`);
+  }
+});
+
+/** ===============================
+ *  Clear
+ *  =============================== */
+$("clearBtn").addEventListener("click", () => {
+  resetFormToBlank();
+  setStatus("Cleared.");
+});
+
+$("viewReportsBtn").addEventListener("click", () => {
+  // Navigate to the reports browser page
+  window.location.href = "ShiftReport_View.html";
+});
+
+/** initial render */
+render();
+</script>
+</body>
+</html>

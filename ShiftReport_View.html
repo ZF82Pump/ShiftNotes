@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shift Reports - Browse & Export</title>
+
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:rgba(255,255,255,.06);
+      --stroke:rgba(255,255,255,.12);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.65);
+      --good:#22c55e;
+      --warn:#fbbf24;
+      --bad:#ef4444;
+      --blue:#3b82f6;
+      --radius:16px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:
+        radial-gradient(900px 500px at 10% 0%, rgba(34,197,94,.14), transparent 55%),
+        radial-gradient(900px 500px at 90% 10%, rgba(59,130,246,.12), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1300px;margin:0 auto;padding:24px;}
+    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px;}
+    h1{font-size:22px;margin:0 0 6px 0;}
+    .sub{color:var(--muted);font-size:13px;line-height:1.35;}
+    .card{
+      background:linear-gradient(180deg, var(--panel), rgba(255,255,255,.03));
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+    .field{display:flex;flex-direction:column;gap:6px;}
+    label{font-size:12px;color:var(--muted);}
+    input, select, button, textarea{
+      font-family:inherit;
+      border-radius:12px;
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,.25);
+      color:var(--text);
+      padding:10px 10px;
+      outline:none;
+    }
+    input[type="date"]{padding:9px 10px;}
+    button{
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.08);
+      transition:.15s ease;
+      font-weight:700;
+      padding:10px 12px;
+    }
+    button:hover{background:rgba(255,255,255,.12);}
+    .primary{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.35);}
+    .primary:hover{background:rgba(34,197,94,.24);}
+    .danger{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.35);}
+    .danger:hover{background:rgba(239,68,68,.22);}
+    .pill{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.8);padding:6px 10px;border:1px solid var(--stroke);border-radius:999px;background:rgba(0,0,0,.18);}
+    .status{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,.22);
+      font-size:13px;
+      white-space:pre-wrap;
+    }
+    table{width:100%;border-collapse:separate;border-spacing:0 8px;margin-top:12px;}
+    th{
+      font-size:11px;color:var(--muted);font-weight:700;text-align:left;padding:0 10px;
+    }
+    td{padding:10px;}
+    tr.dataRow{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+    }
+    .mono{font-family:var(--mono);}
+    .muted{color:var(--muted);}
+    .linkBtn{
+      background:rgba(59,130,246,.12);
+      border-color:rgba(59,130,246,.30);
+    }
+    .linkBtn:hover{background:rgba(59,130,246,.18);}
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 420px;
+      gap:12px;
+      margin-top:12px;
+    }
+    @media (max-width: 1150px){
+      .split{grid-template-columns:1fr;}
+    }
+    .detail h2{margin:0 0 8px 0;font-size:16px;}
+    .detail .meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+    .detail .meta .pill{font-size:11px;}
+    .detail table{margin-top:8px;}
+    .detail td, .detail th{padding:8px 10px;}
+    .detail .labelCell{width:46%;}
+    .detail textarea{min-height:36px;resize:vertical;}
+  </style>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Shift Reports</h1>
+        <div class="sub">Browse previous reports, sort them, open details, and export selected reports to Excel.</div>
+      </div>
+      <div class="row">
+        <button id="backBtn" class="linkBtn" type="button">← Back to entry</button>
+        <div class="pill" id="nowPill"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="field">
+          <label for="fromDate">From</label>
+          <input type="date" id="fromDate" />
+        </div>
+        <div class="field">
+          <label for="toDate">To</label>
+          <input type="date" id="toDate" />
+        </div>
+        <div class="field">
+          <label for="filterSupervisor">Supervisor</label>
+          <select id="filterSupervisor">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="filterShift">Shift</label>
+          <select id="filterShift">
+            <option value="">All</option>
+            <option>First</option>
+            <option>Second</option>
+            <option>Third</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sortBy">Sort by</label>
+          <select id="sortBy">
+            <option value="date_desc">Date (newest)</option>
+            <option value="date_asc">Date (oldest)</option>
+            <option value="shift_asc">Shift</option>
+            <option value="supervisor_asc">Supervisor</option>
+            <option value="actual_desc">Actual ran (high → low)</option>
+            <option value="actual_asc">Actual ran (low → high)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="refreshBtn" type="button">Refresh</button>
+        </div>
+
+        <div style="flex:1"></div>
+
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="exportBtn" class="primary" type="button">Export selected to Excel</button>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="clearSelBtn" type="button">Clear selection</button>
+        </div>
+      </div>
+
+      <div class="split">
+        <div>
+          <div class="status" id="statusBox">Ready.</div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width:48px;">Sel</th>
+                <th>Date</th>
+                <th>Shift</th>
+                <th>Supervisor</th>
+                <th class="mono">Areas</th>
+                <th class="mono">Actual ran (sum)</th>
+                <th style="width:130px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="reportsTbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card detail" id="detailCard" style="display:none;">
+          <div class="row" style="justify-content:space-between;align-items:center;">
+            <h2>Report details</h2>
+            <button id="closeDetailBtn" class="danger" type="button">Close</button>
+          </div>
+          <div class="meta" id="detailMeta"></div>
+          <div class="status" id="detailStatus">Loading…</div>
+          <div id="detailLines"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /** ===============================
+   *  CONFIG: Supabase
+   *  =============================== */
+  const SUPABASE_URL = "https://vycwkgpdivxazjgsrgiq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_aAjs8tF_8c8sB30ekxSXZQ_KxaBMBTE"; // <-- replace
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  const statusBox = $("statusBox");
+  const tbody = $("reportsTbody");
+
+  const selected = new Set();   // report IDs
+  let cached = [];              // reports with computed actual_sum
+
+  function setStatus(msg){ statusBox.textContent = msg; }
+
+  function todayISO(){
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  function prettyNow(){ return new Date().toLocaleString(); }
+
+  $("nowPill").textContent = `Now: ${prettyNow()}`;
+
+  // Default date range: last 14 days
+  (function initDates(){
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 14);
+    const toISO = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    $("toDate").value = toISO(end);
+    $("fromDate").value = toISO(start);
+  })();
+
+  $("backBtn").addEventListener("click", () => {
+    window.location.href = "index.html";
+  });
+
+  $("refreshBtn").addEventListener("click", () => loadReports());
+  $("clearSelBtn").addEventListener("click", () => { selected.clear(); renderTable(); setStatus("Selection cleared."); });
+
+  $("exportBtn").addEventListener("click", async () => {
+    try{
+      if(selected.size === 0){
+        setStatus("Select one or more reports first.");
+        return;
+      }
+      setStatus("Fetching selected reports for export…");
+
+      const ids = Array.from(selected);
+
+      // Header fetch
+      const { data: headers, error: hErr } = await sb
+        .from("shift_reports")
+        .select("id, created_at, report_date, supervisor, shift, work_areas")
+        .in("id", ids);
+
+      if(hErr) throw hErr;
+
+      // Lines fetch
+      const { data: lines, error: lErr } = await sb
+        .from("shift_report_lines")
+        .select("report_id, area_group, label, ops, hours_worked, actual_ran, notes")
+        .in("report_id", ids)
+        .order("area_group", { ascending: true })
+        .order("label", { ascending: true });
+
+      if(lErr) throw lErr;
+
+      // Build two sheets: Summary + Lines
+      const summaryRows = headers
+        .map(h => ({
+          report_id: h.id,
+          report_date: h.report_date,
+          shift: h.shift,
+          supervisor: h.supervisor,
+          work_areas: Array.isArray(h.work_areas) ? h.work_areas.join(", ") : (h.work_areas || ""),
+          created_at: h.created_at
+        }))
+        .sort((a,b) => String(b.report_date).localeCompare(String(a.report_date)));
+
+      const lineRows = lines.map(r => ({
+        report_id: r.report_id,
+        area_group: r.area_group,
+        label: r.label,
+        ops: r.ops ?? "",
+        hours_worked: r.hours_worked ?? "",
+        actual_ran: r.actual_ran ?? "",
+        notes: r.notes ?? ""
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws1 = XLSX.utils.json_to_sheet(summaryRows);
+      const ws2 = XLSX.utils.json_to_sheet(lineRows);
+
+      XLSX.utils.book_append_sheet(wb, ws1, "Reports");
+      XLSX.utils.book_append_sheet(wb, ws2, "Lines");
+
+      const filename = `shift_reports_export_${todayISO()}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      setStatus(`✅ Exported: ${filename}`);
+    }catch(err){
+      console.error(err);
+      setStatus(`❌ Export failed:\n${err?.message || JSON.stringify(err)}`);
+    }
+  });
+
+  // Build supervisor filter list from DB (distinct supervisors)
+  async function loadSupervisors(){
+    const sel = $("filterSupervisor");
+    sel.innerHTML = '<option value="">All</option>';
+
+    const { data, error } = await sb
+      .from("shift_reports")
+      .select("supervisor");
+
+    if(error){
+      console.warn(error);
+      return;
+    }
+    const uniq = Array.from(new Set((data||[]).map(x => (x.supervisor||"").trim()).filter(Boolean))).sort();
+    for(const s of uniq){
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      sel.appendChild(opt);
+    }
+  }
+
+  function computeActualSums(reports, lines){
+    const sumById = new Map();
+    for(const ln of lines){
+      const v = (typeof ln.actual_ran === "number") ? ln.actual_ran : Number(ln.actual_ran);
+      const add = Number.isFinite(v) ? v : 0;
+      sumById.set(ln.report_id, (sumById.get(ln.report_id) || 0) + add);
+    }
+    return reports.map(r => ({
+      ...r,
+      actual_sum: sumById.get(r.id) || 0
+    }));
+  }
+
+  function applyFiltersAndSort(rows){
+    const sup = $("filterSupervisor").value;
+    const shift = $("filterShift").value;
+
+    let out = rows.slice();
+    if(sup) out = out.filter(r => r.supervisor === sup);
+    if(shift) out = out.filter(r => r.shift === shift);
+
+    const sort = $("sortBy").value;
+    const byDate = (a,b) => String(a.report_date).localeCompare(String(b.report_date));
+
+    if(sort === "date_desc") out.sort((a,b) => -byDate(a,b));
+    if(sort === "date_asc") out.sort((a,b) => byDate(a,b));
+    if(sort === "shift_asc") out.sort((a,b) => String(a.shift).localeCompare(String(b.shift)) || -byDate(a,b));
+    if(sort === "supervisor_asc") out.sort((a,b) => String(a.supervisor).localeCompare(String(b.supervisor)) || -byDate(a,b));
+    if(sort === "actual_desc") out.sort((a,b) => (b.actual_sum - a.actual_sum) || -byDate(a,b));
+    if(sort === "actual_asc") out.sort((a,b) => (a.actual_sum - b.actual_sum) || -byDate(a,b));
+
+    return out;
+  }
+
+  function renderTable(){
+    tbody.innerHTML = "";
+
+    const rows = applyFiltersAndSort(cached);
+
+    if(rows.length === 0){
+      const tr = document.createElement("tr");
+      tr.className = "dataRow";
+      tr.innerHTML = `<td colspan="7" class="muted">No reports found for the selected filters/range.</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for(const r of rows){
+      const tr = document.createElement("tr");
+      tr.className = "dataRow";
+
+      const areas = Array.isArray(r.work_areas) ? r.work_areas.join(", ") : (r.work_areas || "");
+      const checked = selected.has(r.id) ? "checked" : "";
+
+      tr.innerHTML = `
+        <td><input type="checkbox" data-id="${r.id}" ${checked}></td>
+        <td class="mono">${r.report_date || ""}</td>
+        <td>${r.shift || ""}</td>
+        <td>${r.supervisor || ""}</td>
+        <td class="mono muted">${areas}</td>
+        <td class="mono">${(r.actual_sum || 0).toLocaleString()}</td>
+        <td><button class="linkBtn" data-open="${r.id}" type="button">Open</button></td>
+      `;
+
+      tbody.appendChild(tr);
+    }
+
+    // wire checkbox events
+    tbody.querySelectorAll('input[type="checkbox"][data-id]').forEach(cb => {
+      cb.addEventListener("change", () => {
+        const id = cb.getAttribute("data-id");
+        if(cb.checked) selected.add(id);
+        else selected.delete(id);
+      });
+    });
+
+    // wire open events
+    tbody.querySelectorAll('button[data-open]').forEach(btn => {
+      btn.addEventListener("click", () => openReport(btn.getAttribute("data-open")));
+    });
+  }
+
+  async function loadReports(){
+    try{
+      setStatus("Loading reports…");
+
+      const fromDate = $("fromDate").value;
+      const toDate = $("toDate").value;
+
+      // Reports in range
+      let q = sb.from("shift_reports").select("id, created_at, report_date, supervisor, shift, work_areas");
+
+      if(fromDate) q = q.gte("report_date", fromDate);
+      if(toDate) q = q.lte("report_date", toDate);
+
+      const { data: reports, error: rErr } = await q;
+      if(rErr) throw rErr;
+
+      const ids = (reports || []).map(r => r.id);
+      if(ids.length === 0){
+        cached = [];
+        renderTable();
+        setStatus("No reports in the selected range.");
+        return;
+      }
+
+      // Pull lines only for those reports (to compute actual sum)
+      const { data: lines, error: lErr } = await sb
+        .from("shift_report_lines")
+        .select("report_id, actual_ran")
+        .in("report_id", ids);
+
+      if(lErr) throw lErr;
+
+      cached = computeActualSums(reports, lines || []);
+      renderTable();
+
+      setStatus(`Loaded ${cached.length} report(s).`);
+    }catch(err){
+      console.error(err);
+      setStatus(`❌ Load failed:\n${err?.message || JSON.stringify(err)}`);
+    }
+  }
+
+  async function openReport(reportId){
+    const card = $("detailCard");
+    card.style.display = "block";
+    $("detailStatus").textContent = "Loading…";
+    $("detailLines").innerHTML = "";
+    $("detailMeta").innerHTML = "";
+
+    try{
+      // Header
+      const { data: header, error: hErr } = await sb
+        .from("shift_reports")
+        .select("id, created_at, report_date, supervisor, shift, work_areas")
+        .eq("id", reportId)
+        .single();
+
+      if(hErr) throw hErr;
+
+      const meta = $("detailMeta");
+      const mk = (t) => { const d=document.createElement("div"); d.className="pill"; d.textContent=t; return d; };
+      meta.appendChild(mk(`Date: ${header.report_date || ""}`));
+      meta.appendChild(mk(`Shift: ${header.shift || ""}`));
+      meta.appendChild(mk(`Supervisor: ${header.supervisor || ""}`));
+      meta.appendChild(mk(`Areas: ${(Array.isArray(header.work_areas)?header.work_areas.join(", "):(header.work_areas||""))}`));
+      meta.appendChild(mk(`Created: ${new Date(header.created_at).toLocaleString()}`));
+
+      // Lines
+      const { data: lines, error: lErr } = await sb
+        .from("shift_report_lines")
+        .select("area_group, label, ops, hours_worked, actual_ran, notes")
+        .eq("report_id", reportId)
+        .order("area_group", { ascending: true })
+        .order("label", { ascending: true });
+
+      if(lErr) throw lErr;
+
+      $("detailStatus").textContent = `Loaded ${lines.length} line(s).`;
+
+      // Render grouped by area_group
+      const groups = new Map();
+      for(const ln of lines){
+        const g = ln.area_group || "Unknown";
+        if(!groups.has(g)) groups.set(g, []);
+        groups.get(g).push(ln);
+      }
+
+      const container = document.createElement("div");
+
+      for(const [g, arr] of groups.entries()){
+        const h = document.createElement("div");
+        h.className = "pill";
+        h.style.margin = "8px 0 6px 0";
+        h.textContent = `Area: ${g}`;
+        container.appendChild(h);
+
+        const tbl = document.createElement("table");
+        tbl.innerHTML = `
+          <thead>
+            <tr>
+              <th class="labelCell">Label</th>
+              <th># Ops</th>
+              <th>Hours worked</th>
+              <th>Actual ran</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tb = tbl.querySelector("tbody");
+
+        for(const ln of arr){
+          const tr = document.createElement("tr");
+          tr.className = "dataRow";
+          tr.innerHTML = `
+            <td class="labelCell">${ln.label || ""}</td>
+            <td class="mono">${ln.ops ?? ""}</td>
+            <td class="mono">${ln.hours_worked ?? ""}</td>
+            <td class="mono">${ln.actual_ran ?? ""}</td>
+            <td>${ln.notes ?? ""}</td>
+          `;
+          tb.appendChild(tr);
+        }
+
+        container.appendChild(tbl);
+      }
+
+      $("detailLines").appendChild(container);
+    }catch(err){
+      console.error(err);
+      $("detailStatus").textContent = `❌ Failed to open report:\n${err?.message || JSON.stringify(err)}`;
+    }
+  }
+
+  $("closeDetailBtn").addEventListener("click", () => {
+    $("detailCard").style.display = "none";
+  });
+
+  // init
+  (async function(){
+    await loadSupervisors();
+    await loadReports();
+
+    $("filterSupervisor").addEventListener("change", renderTable);
+    $("filterShift").addEventListener("change", renderTable);
+    $("sortBy").addEventListener("change", renderTable);
+  })();
+</script>
+</body>
+</html>
